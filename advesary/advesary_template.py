@@ -18,7 +18,7 @@ def random_parameters_request(session):
 function_inputs = [0.0 for _ in range(4)]
 desired_output = 44
 session = requests.session()
-mesurements_repetition = 1000
+mesurements_repetition = 10
 
 def fitness_func(solution, solution_idx):
     output = list(solution)
@@ -31,7 +31,7 @@ def fitness_func(solution, solution_idx):
 
 fitness_function = fitness_func
 
-num_generations = 100
+num_generations = 10000
 num_parents_mating = 4
 
 sol_per_pop = 8

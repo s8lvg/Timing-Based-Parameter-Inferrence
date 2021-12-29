@@ -31,7 +31,7 @@ struct Input {
 
 // Implementation of a precise timestamp using the RDTSCP instruction
 #[inline]
-fn rdtsc() -> u64{
+fn rdtscp() -> u64{
     let a : u64;
     let d : u64;
     let res : u64;
@@ -49,13 +49,35 @@ fn rdtsc() -> u64{
     return res;
 }
 
+// Implementation of a precise timestamp using the RDTSC instruction use this if 
+// RDSCP does not work
+#[inline]
+fn rdtsc() -> u64{
+    let a : u64;
+    let d : u64;
+    let res : u64;
+    unsafe{
+        asm!("nop");
+        asm!("mfence");
+        asm!("rdtsc",
+             out("eax") a,
+             out("edx") d,
+            );
+        res = (d << 32) | a;
+        asm!("mfence");
+    }
+    return res;
+}
+
 async fn make_prediction(model: web::Data<Arc<Mutex<ModelType>>>,input: web::Json<Input>) -> HttpResponse{
     let model_extract = model.lock().unwrap();
     let input_tensor : Tensor = Array::from_shape_vec((1,4),input.input_values.clone()).unwrap().into();
+
     // Get timed run of model 
-    let start = rdtsc();
+    let start = rdtscp();
     let result = model_extract.run(tvec!(input_tensor)).unwrap();
-    let end = rdtsc();
+    let end = rdtscp();
+    
     // Get timing difference
     let delta = end-start;
     
@@ -75,7 +97,6 @@ async fn make_prediction(model: web::Data<Arc<Mutex<ModelType>>>,input: web::Jso
         prediction_time : delta.to_owned(),
     };
 
-    println!("result: {:?}, timing: {}", prediction.confidence_vector, prediction.prediction_time);
     HttpResponse::Ok().json(prediction)
 }
 
