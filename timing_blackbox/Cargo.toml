@@ -1,0 +1,20 @@
+[package]
+name = "timing-neural-net-blackbox"
+version = "0.1.0"
+authors = ["Lukas Gerlach <s8lugerl@stud.uni-saarland.de>"]
+license = "MIT/Apache-2.0"
+edition = "2021"
+
+[dependencies]
+image = "0.23.14"
+tract-onnx = "0.15.8"
+actix-web = "3.3.3"
+structopt = "0.3.25"
+futures = "0.3.19"
+log = "0.4.14"
+pretty_env_logger = "0.4.0"
+serde = "1.0.132"
+serde_derive = "1.0.132"
+serde_json = "1.0.73"
+exitfailure = "0.5.1"
+anyhow = "1.0.52"
