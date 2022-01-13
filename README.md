@@ -4,7 +4,7 @@
 A simple implementation of a neural network that does classification on the iris dataset. The resulting network gets dumped in onnx format. 
 
 ## Timing Blackbox
-A rust network evaluator that takes the onnx implemtation of iris_net (or with small modifications any other neural network). Run it with ```cargo +nightly run``` while in the ```timing_blackbox``` directory. It consists of the following parts. 
+A rust network evaluator that takes the onnx implemtation of iris_net (or with small modifications any other neural network). Run it with ```cargo +nightly run <path-to-onnx-model>``` while in the ```timing_blackbox``` directory. It consists of the following parts. 
 
 ### Webserver
 Handles incoming request to the neural network all communication is done in json format and works like this
@@ -31,11 +31,26 @@ let end = rdtscp();
 ```
 This prediction time then gets send to the client.
 
-## Advesary
+### Loading API
+The loading api at ```http://127.0.0.1/loadmodel``` allows the client to load a different model into the blackbox. This is useful to compare execution times of different models with each other. To request a new model the client sends a post request containing
+```json
+{"path":<path-to-model>}
+```
+**TODO**: Include model input dimensions such that different models can easily be loaded.
+## Genetic Advesary
 A sample implementation that tries to maximise the time it takes for the network to execute. It works by using a genetic algorithm in the following way
 - Sends request to the Prediction api
 - Uses prediction_time value to compute a fitness function
 - Mutate seeds to optimize fitness using genetic algorithm
+
+## Layer detection Advesary
+An adveary that uses ridge regression to infer the network depth from timing measurements. 
+- Profiles the network execution time for different depths to get an image of hardware execution speed. For this run set ```PROFILE=TRUE```.
+- Trains a ridge regression classifier on the results
+- Generates a on the fly test set by quering and measuiring the time for randomly deeep neural networks of the same architecture.
+- Predicts the test set and plots a confusion matrix
+
+Results: ~ 90% accuracy, im sure it is possible to get close to 100% by tweaking hyperparameters.
 
 # Troubleshoot
 The timing blackbox uses the assembly instruction ```rdscp``` which may not be availiable on all systems. In case this leads to an error replace all calls to ```rdscp()``` with calls to ```rdsc()```.

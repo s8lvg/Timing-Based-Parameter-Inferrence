@@ -13,6 +13,7 @@ use tract_onnx::prelude::*;
 use std::arch::asm;
 use tract_ndarray::Array;
 use std::sync::*;
+use std::env;
 
 type ModelType = tract_onnx::prelude::SimplePlan<tract_onnx::prelude::TypedFact, std::boxed::Box<dyn tract_onnx::prelude::TypedOp>, tract_onnx::prelude::Graph<tract_onnx::prelude::TypedFact, std::boxed::Box<dyn tract_onnx::prelude::TypedOp>>>;
 
@@ -27,6 +28,11 @@ struct Prediction {
 #[derive(Deserialize)]
 struct Input {
     input_values: Vec<f32>,
+}
+
+#[derive(Deserialize)]
+struct ModelPath {
+    path: String,
 }
 
 // Implementation of a precise timestamp using the RDTSCP instruction
@@ -100,11 +106,26 @@ async fn make_prediction(model: web::Data<Arc<Mutex<ModelType>>>,input: web::Jso
     HttpResponse::Ok().json(prediction)
 }
 
+async fn load_model(model: web::Data<Arc<Mutex<ModelType>>>,input: web::Json<ModelPath>) -> HttpResponse{
+    let shape = tvec!(1,4);
+    let model_new = tract_onnx::onnx()
+        .model_for_path(input.path.clone()).unwrap()
+        .with_input_fact(0, InferenceFact::dt_shape(f32::datum_type(), shape)).unwrap()
+        .into_optimized().unwrap()
+        .into_runnable().unwrap();
+    let mut model_extract = model.lock().unwrap(); 
+    *model_extract = model_new;
+    HttpResponse::Ok().body(input.path.clone())
+}
+
+
 #[actix_web::main]
 async fn main() ->anyhow::Result<()>{
 
+    let args: Vec<String> = env::args().collect();
+
     // Path to model
-    let path = "iris_net.onnx";
+    let path = &args[1];
     // Input shape of model
     let shape = tvec!(1,4);
 
@@ -120,13 +141,19 @@ async fn main() ->anyhow::Result<()>{
     info!("[+] Starting Server at 127.0.0.1:8080");
 
     HttpServer::new(move || {
-        let data = Arc::new(Mutex::new(model.clone()));
+        let mut data = Arc::new(Mutex::new(model.clone()));
         App::new()
             .data(data)
             .service(
                 web::resource("/predict").route(
                     web::post().to(make_prediction)))
+            .service(
+                web::resource("/loadmodel").route(
+                    web::post().to(load_model)
+                )   
+            )
     })
+    .workers(1)
     .bind("127.0.0.1:8080")
     .unwrap() 
     .run()
