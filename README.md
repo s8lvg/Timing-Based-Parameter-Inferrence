@@ -1,4 +1,5 @@
-# Mlcysec End Of Term Project
+# Timing based neural network parameter inferrence
+A simple PoC project that shows that it is possible to infer information about neural networks timing behaviour. The experiments show that an advesary can trigger edge cases whith long timings and infer the network depth by only performing black box queries to the netowork.
 
 ## Before running
 - These instructions only work on Linux for all other OS your on your own
